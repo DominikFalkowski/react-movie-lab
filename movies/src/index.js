@@ -23,6 +23,7 @@ const App = () => {
         <Route path="/movies/:id" element={<MoviePage />} />
         <Route path="/" element={<HomePage />} />
         <Route path="*" element={ <Navigate to="/" /> } />
+        <Route path="/reviews/:id" element={ <MovieReviewPage /> } />
       </Routes>
     </BrowserRouter>
   );
