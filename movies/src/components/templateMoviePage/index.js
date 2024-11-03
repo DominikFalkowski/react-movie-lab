@@ -1,62 +1,43 @@
-import React from "react";
-import MovieHeader from "../headerMovie";
-import Grid from "@mui/material/Grid2";
-import ImageList from "@mui/material/ImageList";
-import ImageListItem from "@mui/material/ImageListItem";
-import { getMovieImages } from "../../api/tmdb-api";
-import { useQuery } from "react-query";
-import Spinner from '../spinner'
+import React, { useContext } from "react";
+import PageTemplate from "../components/templateMovieListPage";
+import { MoviesContext } from "../contexts/moviesContext";
+import { useQueries } from "react-query";
+import { getMovie } from "../api/tmdb-api";
+import Spinner from '../components/spinner'
 
-const TemplateMoviePage = ({ movie, children }) => {
-    const { data , error, isLoading, isError } = useQuery(
-        ["images", { id: movie.id }],
-        getMovieImages
-      );
-    
-      if (isLoading) {
-        return <Spinner />;
-      }
-    
-      if (isError) {
-        return <h1>{error.message}</h1>;
-      }
-      const images = data.posters 
+const FavoriteMoviesPage = () => {
+  const {favorites: movieIds } = useContext(MoviesContext);
+
+  // Create an array of queries and run in parallel.
+  const favoriteMovieQueries = useQueries(
+    movieIds.map((movieId) => {
+      return {
+        queryKey: ["movie", { id: movieId }],
+        queryFn: getMovie,
+      };
+    })
+  );
+  // Check if any of the parallel queries is still loading.
+  const isLoading = favoriteMovieQueries.find((m) => m.isLoading === true);
+
+  if (isLoading) {
+    return <Spinner />;
+  }
+
+  const movies = favoriteMovieQueries.map((q) => {
+    q.data.genre_ids = q.data.genres.map(g => g.id)
+    return q.data
+  });
+
+  const toDo = () => true;
 
   return (
-    <>
-      <MovieHeader movie={movie} />
-
-      <Grid container spacing={5} style={{ padding: "15px" }}>
-        <Grid size={{xs: 3}}>
-          <div sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-around",
-          }}>
-            <ImageList
-                sx={{
-                    height: "100vh",
-                }}
-                cols={1}
-            >
-                {images.map((image) => (
-                    <ImageListItem key={image.file_path} cols={1}>
-                    <img
-                        src={`https://image.tmdb.org/t/p/w500/${image.file_path}`}
-                        alt={image.poster_path}
-                    />
-                    </ImageListItem>
-                ))}
-            </ImageList>
-          </div>
-        </Grid>
-
-        <Grid size={{xs: 9}}>
-          {children}
-        </Grid>
-      </Grid>
-    </>
+    <PageTemplate
+      title="Favourite Movies"
+      movies={movies}
+      selectFavorite={toDo}
+    />
   );
 };
 
-export default TemplateMoviePage;
+export default FavoriteMoviesPage;
